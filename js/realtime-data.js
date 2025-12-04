@@ -33,10 +33,10 @@ async function loadDashboardStats() {
     try {
         // Fetch real counts from Supabase
         const [clientsResult, driversResult, ridesResult, pendingVerifications] = await Promise.all([
-            supabaseAPI.supabaseClient.from('users').select('*', { count: 'exact', head: true }),
-            supabaseAPI.supabaseClient.from('drivers').select('*', { count: 'exact', head: true }),
-            supabaseAPI.supabaseClient.from('rides').select('*', { count: 'exact', head: true }),
-            supabaseAPI.fetchDriverVerifications('pending')
+            supabaseAPI.supabaseClient.from('users').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0, error: true })),
+            supabaseAPI.supabaseClient.from('drivers').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0, error: true })),
+            supabaseAPI.supabaseClient.from('rides').select('*', { count: 'exact', head: true }).catch(() => ({ count: 0, error: true })),
+            supabaseAPI.fetchDriverVerifications('pending').catch(() => [])
         ]);
 
         const clientsCount = clientsResult.count || 0;
@@ -48,28 +48,45 @@ async function loadDashboardStats() {
         const { data: completedRides } = await supabaseAPI.supabaseClient
             .from('rides')
             .select('total_price')
-            .eq('status', 'completed');
+            .eq('status', 'completed')
+            .catch(() => ({ data: [] }));
         
         const totalRevenue = completedRides?.reduce((sum, ride) => sum + (parseFloat(ride.total_price) || 0), 0) || 0;
 
-        // Update mini-stats
+        // Update mini-stats with real data (will show 0 if no data)
         updateStatCard('clients-stat', clientsCount);
         updateStatCard('drivers-stat', driversCount);
         updateStatCard('rides-stat', ridesCount);
         updateStatCard('revenue-stat', totalRevenue, true); // true for currency format
+
+        // Update stat-change indicators
+        updateStatChange('clients-stat', clientsCount);
+        updateStatChange('drivers-stat', driversCount);
+        updateStatChange('rides-stat', ridesCount);
+        updateStatChange('revenue-stat', totalRevenue);
 
         // Update pending verifications badge
         const docsBadge = document.querySelector('[data-page="documents"] .badge');
         if (docsBadge && pendingDocsCount > 0) {
             docsBadge.textContent = pendingDocsCount;
             docsBadge.style.display = 'inline-block';
+        } else if (docsBadge) {
+            docsBadge.style.display = 'none';
         }
 
         // Update charts with real data
         await updateChartsWithRealData();
 
+        // Log status
+        console.log(`📊 Stats loaded: ${clientsCount} clients, ${driversCount} drivers, ${ridesCount} rides, ${totalRevenue} CFA revenue`);
+
     } catch (error) {
         console.error('Error loading dashboard stats:', error);
+        // Set all to 0 on error
+        updateStatCard('clients-stat', 0);
+        updateStatCard('drivers-stat', 0);
+        updateStatCard('rides-stat', 0);
+        updateStatCard('revenue-stat', 0, true);
     }
 }
 
@@ -81,6 +98,17 @@ function updateStatCard(statId, value, isCurrency = false) {
         } else {
             statElement.textContent = value.toLocaleString('fr-FR');
         }
+    }
+}
+
+function updateStatChange(statId, value) {
+    const statChangeElement = document.querySelector(`[data-stat="${statId}"] .stat-change`);
+    if (statChangeElement) {
+        if (value === 0) {
+            statChangeElement.textContent = 'Aucune donnée';
+            statChangeElement.className = 'stat-change';
+        }
+        // Keep existing percentage text if there's data
     }
 }
 
@@ -573,13 +601,28 @@ window.addEventListener('beforeunload', () => {
 });
 
 // ========== INITIALIZE ON SUPABASE READY ==========
+function waitForSupabase() {
+    return new Promise((resolve) => {
+        const checkSupabase = () => {
+            if (window.supabaseAPI && window.supabaseAPI.supabaseClient) {
+                console.log('✅ Supabase ready, initializing real-time data...');
+                resolve();
+            } else {
+                console.log('⏳ Waiting for Supabase...');
+                setTimeout(checkSupabase, 500);
+            }
+        };
+        checkSupabase();
+    });
+}
+
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        // Wait for Supabase to initialize
-        setTimeout(initRealtimeData, 1000);
+    document.addEventListener('DOMContentLoaded', async () => {
+        await waitForSupabase();
+        await initRealtimeData();
     });
 } else {
-    setTimeout(initRealtimeData, 1000);
+    waitForSupabase().then(() => initRealtimeData());
 }
 
 // Re-load data when switching tabs
