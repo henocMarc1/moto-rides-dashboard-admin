@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moto Rides - Dashboard Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M8 10C8 9.44772 8.44772 9 9 9C9.55228 9 10 9.44772 10 10V14C10 14.5523 9.55228 15 9 15C8.44772 15 8 14.5523 8 14V10Z" fill="#FFD700"/>
+                    <path d="M14 10C14 9.44772 14.4477 9 15 9C15.5523 9 16 9.44772 16 10V14C16 14.5523 15.5523 15 15 15C14.4477 15 14 14.5523 14 14V10Z" fill="#FFD700"/>
+                    <path d="M12 3C11.4477 3 11 3.44772 11 4V7H3C1.89543 7 1 7.89543 1 9V18C1 19.1046 1.89543 20 3 20H13C13.5523 20 14 19.5523 14 19C14 18.4477 13.5523 18 13 18H3V9H21V18C21 18.5523 21.4477 19 22 19C22.5523 19 23 18.5523 23 18V9C23 7.89543 22.1046 7 21 7H13V4C13 3.44772 12.5523 3 12 3Z" fill="#FFD700"/>
+                </svg>
+                <h1>Moto Rides</h1>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 13H11V3H3V13ZM3 21H11V15H3V21ZM13 21H21V11H13V21ZM13 3V9H21V3H13Z" fill="currentColor"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="clients">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M16 11C17.66 11 18.99 9.66 18.99 8S17.66 5 16 5C14.34 5 13 6.34 13 8S14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8S9.66 5 8 5C6.34 5 5 6.34 5 8S6.34 11 8 11ZM8 13C6 13 2 14.17 2 16V19H14V16C14 14.17 10 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 14.89 17 17 17 19V19H22V16C22 14.17 18 13 16 13Z" fill="currentColor"/>
+                    </svg>
+                    <span>Clients</span>
+                </a>
+                <a href="#" class="nav-item" data-page="drivers">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19 10H15V5C15 3.9 14.1 3 13 3H11C9.9 3 9 3.9 9 5V10H5C3.9 10 3 10.9 3 12V14C3 15.1 3.9 16 5 16H6V21C6 22.1 6.9 23 8 23C9.1 23 10 22.1 10 21V16H14V21C14 22.1 14.9 23 16 23C17.1 23 18 22.1 18 21V16H19C20.1 16 21 15.1 21 14V12C21 10.9 20.1 10 19 10ZM15 10H9V5H15V10Z" fill="currentColor"/>
+                    </svg>
+                    <span>Conducteurs</span>
+                </a>
+                <a href="#" class="nav-item" data-page="rides">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 6H20V4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H6V22H8V20H16V22H18V20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4V2H18V4H6V2H4V4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20V6H4Z" fill="currentColor"/>
+                    </svg>
+                    <span>Courses</span>
+                </a>
+                <a href="#" class="nav-item" data-page="documents">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2H6C4.9 2 4.01 2.9 4.01 4L4 20C4 21.1 4.89 22 5.99 22H18C19.1 22 20 21.1 20 20V8L14 2ZM18 20H6V4H13V9H18V20Z" fill="currentColor"/>
+                    </svg>
+                    <span>Documents</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.14 12.94C19.18 12.64 19.2 12.33 19.2 12C19.2 11.67 19.18 11.36 19.13 11.06L21.16 9.48C21.34 9.34 21.39 9.07 21.28 8.87L19.36 5.55C19.25 5.35 19 5.27 18.8 5.38L16.46 6.74C16.04 6.36 15.56 6.03 15.04 5.79L14.7 3.21C14.66 2.98 14.45 2.82 14.22 2.82H10.22C9.99 2.82 9.78 2.98 9.74 3.21L9.4 5.79C8.88 6.03 8.4 6.37 7.98 6.75L5.64 5.38C5.44 5.27 5.19 5.35 5.08 5.55L3.16 8.87C3.05 9.07 3.1 9.34 3.28 9.48L5.31 11.06C5.26 11.36 5.24 11.67 5.24 12C5.24 12.33 5.26 12.64 5.31 12.94L3.28 14.52C3.1 14.66 3.05 14.93 3.16 15.13L5.08 18.45C5.19 18.65 5.44 18.73 5.64 18.62L7.98 17.25C8.4 17.63 8.88 17.97 9.4 18.21L9.74 20.79C9.78 21.02 9.99 21.18 10.22 21.18H14.22C14.45 21.18 14.66 21.02 14.7 20.79L15.04 18.21C15.56 17.97 16.04 17.63 16.46 17.25L18.8 18.62C19 18.73 19.25 18.65 19.36 18.45L21.28 15.13C21.39 14.93 21.34 14.66 21.16 14.52L19.14 12.94ZM12.22 15.5C10.81 15.5 9.67 14.36 9.67 12.95C9.67 11.54 10.81 10.4 12.22 10.4C13.63 10.4 14.77 11.54 14.77 12.95C14.77 14.36 13.63 15.5 12.22 15.5Z" fill="currentColor"/>
+                    </svg>
+                    <span>Paramètres</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="#" class="logout-btn">Déconnexion</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <h2 id="page-title">Dashboard</h2>
+                    <p style="color: var(--gray-medium); font-size: 0.9rem; margin-top: 4px;">Vue d'ensemble en temps réel · <span id="live-time"></span></p>
+                </div>
+                <div class="header-right">
+                    <input type="text" class="search-bar" placeholder="🔍 Rechercher...">
+                    <button class="theme-toggle" title="Changer le thème">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7ZM2 13H4C4.55 13 5 12.55 5 12C5 11.45 4.55 11 4 11H2C1.45 11 1 11.45 1 12C1 12.55 1.45 13 2 13ZM20 13H22C22.55 13 23 12.55 23 12C23 11.45 22.55 11 22 11H20C19.45 11 19 11.45 19 12C19 12.55 19.45 13 20 13ZM11 2V4C11 4.55 11.45 5 12 5C12.55 5 13 4.55 13 4V2C13 1.45 12.55 1 12 1C11.45 1 11 1.45 11 2ZM11 20V22C11 22.55 11.45 23 12 23C12.55 23 13 22.55 13 22V20C13 19.45 12.55 19 12 19C11.45 19 11 19.45 11 20ZM5.99 4.58C5.6 4.19 4.96 4.19 4.58 4.58C4.19 4.97 4.19 5.61 4.58 5.99L5.64 7.05C6.03 7.44 6.67 7.44 7.05 7.05C7.43 6.66 7.44 6.02 7.05 5.64L5.99 4.58ZM18.36 16.95C17.97 16.56 17.33 16.56 16.95 16.95C16.56 17.34 16.56 17.98 16.95 18.36L18.01 19.42C18.4 19.81 19.04 19.81 19.42 19.42C19.81 19.03 19.81 18.39 19.42 18.01L18.36 16.95ZM19.42 5.99C19.81 5.6 19.81 4.96 19.42 4.58C19.03 4.19 18.39 4.19 18.01 4.58L16.95 5.64C16.56 6.03 16.56 6.67 16.95 7.05C17.34 7.43 17.98 7.44 18.36 7.05L19.42 5.99ZM7.05 18.36C7.44 17.97 7.44 17.33 7.05 16.95C6.66 16.56 6.02 16.56 5.64 16.95L4.58 18.01C4.19 18.4 4.19 19.04 4.58 19.42C4.97 19.81 5.61 19.81 5.99 19.42L7.05 18.36Z"/>
+                        </svg>
+                    </button>
+                    <button class="notification-btn" title="Notifications">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.36 5.36 13.5 4.68V4C13.5 3.58 13.22 3.25 12.87 3.25C12.53 3.25 12.25 3.58 12.25 4V4.68C9.63 5.36 8 7.92 8 11V16L6 18V19H18V18L16 16Z"/>
+                        </svg>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="export-btn" title="Exporter les données">
+                        <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M19 12V19H5V12H3V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V12H19ZM13 12.67L15.59 10.09L17 11.5L12 16.5L7 11.5L8.41 10.09L11 12.67V3H13V12.67Z"/>
+                        </svg>
+                    </button>
+                    <div class="user-profile">
+                        <div class="user-avatar">A</div>
+                        <span>Admin</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Page -->
+            <section id="dashboard" class="page active">
+                <div class="content-wrapper">
+                    <!-- Stats Cards -->
+                    <div class="stats-grid">
+                        <div class="stat-card" data-stat="clients">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M16 11C17.66 11 18.99 9.66 18.99 8S17.66 5 16 5C14.34 5 13 6.34 13 8S14.34 11 16 11ZM8 11C9.66 11 10.99 9.66 10.99 8S9.66 5 8 5C6.34 5 5 6.34 5 8S6.34 11 8 11ZM8 13C6 13 2 14.17 2 16V19H14V16C14 14.17 10 13 8 13ZM16 13C15.71 13 15.38 13.02 15.03 13.05C16.19 14.89 17 17 17 19V19H22V16C22 14.17 18 13 16 13Z"/>
+                            </svg>
+                            <div class="stat-content">
+                                <h3>Total Clients</h3>
+                                <p class="stat-value" data-target="12543">0</p>
+                                <span class="stat-change positive">+15% ce mois</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-stat="drivers">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M19 10H15V5C15 3.9 14.1 3 13 3H11C9.9 3 9 3.9 9 5V10H5C3.9 10 3 10.9 3 12V14C3 15.1 3.9 16 5 16H6V21C6 22.1 6.9 23 8 23C9.1 23 10 22.1 10 21V16H14V21C14 22.1 14.9 23 16 23C17.1 23 18 22.1 18 21V16H19C20.1 16 21 15.1 21 14V12C21 10.9 20.1 10 19 10ZM15 10H9V5H15V10Z"/>
+                            </svg>
+                            <div class="stat-content">
+                                <h3>Conducteurs Actifs</h3>
+                                <p class="stat-value" data-target="2847">0</p>
+                                <span class="stat-change positive">+8% ce mois</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-stat="rides">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6H20V4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H6V22H8V20H16V22H18V20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4V2H18V4H6V2H4V4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20V6H4Z"/>
+                            </svg>
+                            <div class="stat-content">
+                                <h3>Courses Aujourd'hui</h3>
+                                <p class="stat-value" data-target="1234">0</p>
+                                <span class="stat-change positive">+25% vs hier</span>
+                            </div>
+                        </div>
+                        <div class="stat-card" data-stat="revenue">
+                            <svg class="stat-icon" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2ZM16.5 12.5H12.5V16.5H11.5V12.5H7.5V11.5H11.5V7.5H12.5V11.5H16.5V12.5Z"/>
+                            </svg>
+                            <div class="stat-content">
+                                <h3>Revenus Aujourd'hui</h3>
+                                <p class="stat-value" data-target="28500000">0</p>
+                                <span class="stat-change positive">+12% vs hier</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="charts-grid">
+                        <div class="chart-card">
+                            <h3>Trajets par Jour</h3>
+                            <canvas id="ridesChart"></canvas>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Revenus par Semaine</h3>
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Rides -->
+                    <div class="table-card">
+                        <h3>Courses Récentes</h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID Trajet</th>
+                                    <th>Client</th>
+                                    <th>Conducteur</th>
+                                    <th>Distance</th>
+                                    <th>Prix</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#MR2412001</td>
+                                    <td>Konan Yao</td>
+                                    <td>Coulibaly S.</td>
+                                    <td>6.8 km</td>
+                                    <td>3,200 CFA</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                    <td><button class="btn-small">Détails</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412002</td>
+                                    <td>Adjara Traoré</td>
+                                    <td>Ouattara I.</td>
+                                    <td>12.3 km</td>
+                                    <td>5,500 CFA</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                    <td><button class="btn-small">Détails</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412003</td>
+                                    <td>Bamba Issouf</td>
+                                    <td>N'Guessan P.</td>
+                                    <td>4.2 km</td>
+                                    <td>2,000 CFA</td>
+                                    <td><span class="badge pending">En cours</span></td>
+                                    <td><button class="btn-small">Détails</button></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412004</td>
+                                    <td>Aya Koné</td>
+                                    <td>Coulibaly S.</td>
+                                    <td>9.5 km</td>
+                                    <td>4,200 CFA</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                    <td><button class="btn-small">Détails</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients Page -->
+            <section id="clients" class="page">
+                <div class="content-wrapper">
+                    <div class="page-header">
+                        <h2>Gestion des Clients</h2>
+                        <button class="btn-primary">+ Ajouter Client</button>
+                    </div>
+
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Téléphone</th>
+                                    <th>Trajets</th>
+                                    <th>Total Dépensé</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Konan Yao</td>
+                                    <td>k.yao@orange.ci</td>
+                                    <td>+225 07 88 45 32 10</td>
+                                    <td>67</td>
+                                    <td>178,500 CFA</td>
+                                    <td><span class="badge active">Actif</span></td>
+                                    <td><button class="btn-small">Modifier</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Adjara Traoré</td>
+                                    <td>adjara.t@gmail.com</td>
+                                    <td>+225 05 44 67 89 23</td>
+                                    <td>42</td>
+                                    <td>94,000 CFA</td>
+                                    <td><span class="badge active">Actif</span></td>
+                                    <td><button class="btn-small">Modifier</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Bamba Issouf</td>
+                                    <td>bamba225@yahoo.fr</td>
+                                    <td>+225 01 23 45 67 89</td>
+                                    <td>28</td>
+                                    <td>71,500 CFA</td>
+                                    <td><span class="badge active">Actif</span></td>
+                                    <td><button class="btn-small">Modifier</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Aya Koné</td>
+                                    <td>aya.kone@moov.ci</td>
+                                    <td>+225 07 12 34 56 78</td>
+                                    <td>15</td>
+                                    <td>38,000 CFA</td>
+                                    <td><span class="badge inactive">Inactif</span></td>
+                                    <td><button class="btn-small">Modifier</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Drivers Page -->
+            <section id="drivers" class="page">
+                <div class="content-wrapper">
+                    <div class="page-header">
+                        <h2>Gestion des Conducteurs</h2>
+                        <button class="btn-primary">+ Ajouter Conducteur</button>
+                    </div>
+
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Email</th>
+                                    <th>Courses</th>
+                                    <th>Rating</th>
+                                    <th>Revenus</th>
+                                    <th>Statut</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Coulibaly Seydou</td>
+                                    <td>seydou.rider@gmail.com</td>
+                                    <td>312</td>
+                                    <td>4.9/5 ⭐</td>
+                                    <td>2.8M CFA</td>
+                                    <td><span class="badge online">En ligne</span></td>
+                                    <td><button class="btn-small">Voir</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Ouattara Ibrahim</td>
+                                    <td>ibrahim.moto@yahoo.fr</td>
+                                    <td>267</td>
+                                    <td>4.7/5 ⭐</td>
+                                    <td>2.1M CFA</td>
+                                    <td><span class="badge online">En ligne</span></td>
+                                    <td><button class="btn-small">Voir</button></td>
+                                </tr>
+                                <tr>
+                                    <td>N'Guessan Patrick</td>
+                                    <td>pat.nguessan@orange.ci</td>
+                                    <td>198</td>
+                                    <td>4.8/5 ⭐</td>
+                                    <td>1.6M CFA</td>
+                                    <td><span class="badge online">En ligne</span></td>
+                                    <td><button class="btn-small">Voir</button></td>
+                                </tr>
+                                <tr>
+                                    <td>Diabaté Moussa</td>
+                                    <td>moussa.d@moov.ci</td>
+                                    <td>143</td>
+                                    <td>4.6/5 ⭐</td>
+                                    <td>1.2M CFA</td>
+                                    <td><span class="badge offline">Hors ligne</span></td>
+                                    <td><button class="btn-small">Voir</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Rides Page -->
+            <section id="rides" class="page">
+                <div class="content-wrapper">
+                    <div class="page-header">
+                        <h2>Historique des Courses</h2>
+                        <input type="date" class="filter-input">
+                    </div>
+
+                    <div class="table-card">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Client</th>
+                                    <th>Conducteur</th>
+                                    <th>Départ</th>
+                                    <th>Destination</th>
+                                    <th>Distance</th>
+                                    <th>Prix</th>
+                                    <th>Date</th>
+                                    <th>Statut</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>#MR2412001</td>
+                                    <td>Konan Yao</td>
+                                    <td>Coulibaly S.</td>
+                                    <td>Plateau Dokui</td>
+                                    <td>Treichville Gare</td>
+                                    <td>6.8 km</td>
+                                    <td>3,200 CFA</td>
+                                    <td>02/12/2025 14:23</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412002</td>
+                                    <td>Adjara Traoré</td>
+                                    <td>Ouattara I.</td>
+                                    <td>Cocody Riviera</td>
+                                    <td>YopougonSiporex</td>
+                                    <td>12.3 km</td>
+                                    <td>5,500 CFA</td>
+                                    <td>02/12/2025 13:45</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412003</td>
+                                    <td>Bamba Issouf</td>
+                                    <td>N'Guessan P.</td>
+                                    <td>Marcory Zone 4</td>
+                                    <td>Plateau Cité</td>
+                                    <td>4.2 km</td>
+                                    <td>2,000 CFA</td>
+                                    <td>02/12/2025 12:10</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                </tr>
+                                <tr>
+                                    <td>#MR2412004</td>
+                                    <td>Aya Koné</td>
+                                    <td>Coulibaly S.</td>
+                                    <td>Abobo Gare</td>
+                                    <td>Adjamé 220</td>
+                                    <td>9.5 km</td>
+                                    <td>4,200 CFA</td>
+                                    <td>02/12/2025 11:30</td>
+                                    <td><span class="badge completed">Complété</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Documents Page -->
+            <section id="documents" class="page">
+                <div class="content-wrapper">
+                    <div class="page-header">
+                        <h2>Vérification Documents</h2>
+                        <div class="header-actions">
+                            <select class="filter-select">
+                                <option value="all">Tous les statuts</option>
+                                <option value="pending">En attente</option>
+                                <option value="approved">Approuvés</option>
+                                <option value="rejected">Refusés</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="stats-mini">
+                        <div class="mini-stat">
+                            <span class="mini-label">En attente</span>
+                            <span class="mini-value warning">8</span>
+                        </div>
+                        <div class="mini-stat">
+                            <span class="mini-label">Approuvés</span>
+                            <span class="mini-value success">45</span>
+                        </div>
+                        <div class="mini-stat">
+                            <span class="mini-label">Refusés</span>
+                            <span class="mini-value danger">3</span>
+                        </div>
+                        <div class="mini-stat">
+                            <span class="mini-label">Expirent bientôt</span>
+                            <span class="mini-value info">5</span>
+                        </div>
+                    </div>
+
+                    <div class="documents-grid">
+                        <div class="doc-card pending">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20 6H16V4C16 2.9 15.1 2 14 2H10C8.9 2 8 2.9 8 4V6H4C2.9 6 2 6.9 2 8V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V8C22 6.9 21.1 6 20 6ZM10 4H14V6H10V4ZM20 20H4V8H20V20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Permis A Moto</h3>
+                                    <span class="badge pending">En attente</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> Diabaté Moussa</p>
+                                    <p><strong>Numéro:</strong> CI-A-2025-078234</p>
+                                    <p><strong>Délivré:</strong> 15 Jan 2024</p>
+                                    <p><strong>Expire:</strong> 15 Jan 2029</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-approve">✓ Valider</button>
+                                    <button class="btn-reject">✗ Refuser</button>
+                                    <button class="btn-view">👁 Voir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="doc-card approved">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 18.5C18.83 18.5 19.5 17.83 19.5 17C19.5 16.17 18.83 15.5 18 15.5C17.17 15.5 16.5 16.17 16.5 17C16.5 17.83 17.17 18.5 18 18.5ZM19.5 9.5H17V8C17 6.34 15.66 5 14 5H10C8.34 5 7 6.34 7 8V9.5H4.5C3.67 9.5 3 10.17 3 11V20C3 20.83 3.67 21.5 4.5 21.5H19.5C20.33 21.5 21 20.83 21 20V11C21 10.17 20.33 9.5 19.5 9.5ZM9 8C9 7.45 9.45 7 10 7H14C14.55 7 15 7.45 15 8V9.5H9V8ZM6 18.5C5.17 18.5 4.5 17.83 4.5 17C4.5 16.17 5.17 15.5 6 15.5C6.83 15.5 7.5 16.17 7.5 17C7.5 17.83 6.83 18.5 6 18.5Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Carte Grise</h3>
+                                    <span class="badge completed">Approuvé</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> Coulibaly Seydou</p>
+                                    <p><strong>Immat:</strong> AB-1234-CI</p>
+                                    <p><strong>Marque:</strong> Yamaha XTZ 125</p>
+                                    <p><strong>Année:</strong> 2023</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-view">👁 Voir</button>
+                                    <span class="validation-date">✓ Validé le 28 Nov 2025</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="doc-card pending">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L4 5V11C4 16.55 7.84 21.74 13 23C18.16 21.74 22 16.55 22 11V5L12 2ZM12 12H20C19.7 15.37 17.69 18.39 14.5 20.09L12 20.89V12H4V6.3L12 3.8V12Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Assurance Moto</h3>
+                                    <span class="badge pending">En attente</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> N'Guessan Patrick</p>
+                                    <p><strong>Police:</strong> NSIA-2025-M-45689</p>
+                                    <p><strong>Garantie:</strong> RC + Vol + Incendie</p>
+                                    <p><strong>Expire:</strong> 30 Juin 2026</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-approve">✓ Valider</button>
+                                    <button class="btn-reject">✗ Refuser</button>
+                                    <button class="btn-view">👁 Voir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="doc-card approved">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5V8H15V7.5C15 5.57 13.43 4 11.5 4S8 5.57 8 7.5V11.24C6.8 11.64 6 12.77 6 14.08V18.92C6 20.62 7.38 22 9.08 22H13.92C15.62 22 17 20.62 17 18.92V14.08C17 12.77 16.2 11.64 15 11.24V7.5C15 6.12 13.88 5 12.5 5S10 6.12 10 7.5V11.24C8.8 11.64 8 12.77 8 14.08V18.92C8 20.62 9.38 22 11.08 22H15.92C17.62 22 19 20.62 19 18.92V14.08C19 12.38 17.62 11 15.92 11H11.08C9.38 11 8 12.38 8 14.08V18.92C8 20.07 8.93 21 10.08 21H12.92C14.07 21 15 20.07 15 18.92V14.08C15 13.48 14.52 13 13.92 13H10.08C9.48 13 9 13.48 9 14.08V18.92C9 19.52 9.48 20 10.08 20H12.92C13.52 20 14 19.52 14 18.92V14.08H9V11.24Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Visite Technique</h3>
+                                    <span class="badge completed">Approuvé</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> Ouattara Ibrahim</p>
+                                    <p><strong>Centre:</strong> SICTA Yopougon</p>
+                                    <p><strong>Date:</strong> 10 Oct 2025</p>
+                                    <p><strong>Valide jusqu'au:</strong> 10 Oct 2026</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-view">👁 Voir</button>
+                                    <span class="validation-date">✓ Validé le 12 Oct 2025</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="doc-card pending">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20 6H16V4C16 2.9 15.1 2 14 2H10C8.9 2 8 2.9 8 4V6H4C2.9 6 2 6.9 2 8V20C2 21.1 2.9 22 4 22H20C21.1 22 22 21.1 22 20V8C22 6.9 21.1 6 20 6ZM10 4H14V6H10V4ZM20 20H4V8H20V20Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Permis A Moto</h3>
+                                    <span class="badge pending">En attente</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> Koné Amadou</p>
+                                    <p><strong>Numéro:</strong> CI-A-2025-091256</p>
+                                    <p><strong>Délivré:</strong> 22 Nov 2024</p>
+                                    <p><strong>Expire:</strong> 22 Nov 2029</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-approve">✓ Valider</button>
+                                    <button class="btn-reject">✗ Refuser</button>
+                                    <button class="btn-view">👁 Voir</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="doc-card approved expiring">
+                            <div class="doc-image">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 2L4 5V11C4 16.55 7.84 21.74 13 23C18.16 21.74 22 16.55 22 11V5L12 2ZM12 12H20C19.7 15.37 17.69 18.39 14.5 20.09L12 20.89V12H4V6.3L12 3.8V12Z" fill="currentColor"/>
+                                </svg>
+                            </div>
+                            <div class="doc-info">
+                                <div class="doc-header">
+                                    <h3>Assurance Moto</h3>
+                                    <span class="badge warning">Expire bientôt</span>
+                                </div>
+                                <div class="doc-details">
+                                    <p><strong>Conducteur:</strong> Traoré Mamadou</p>
+                                    <p><strong>Police:</strong> NSIA-2024-M-32145</p>
+                                    <p><strong>Garantie:</strong> RC + Assistance</p>
+                                    <p><strong>Expire:</strong> 15 Déc 2025 ⚠️</p>
+                                </div>
+                                <div class="doc-actions">
+                                    <button class="btn-view">👁 Voir</button>
+                                    <button class="btn-notify">🔔 Rappeler</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Settings Page -->
+            <section id="settings" class="page">
+                <div class="content-wrapper">
+                    <div class="page-header">
+                        <h2>Paramètres</h2>
+                    </div>
+
+                    <div class="settings-form">
+                        <div class="form-group">
+                            <label>Nom de l'application</label>
+                            <input type="text" value="Moto Rides" placeholder="Nom">
+                        </div>
+                        <div class="form-group">
+                            <label>Email de support</label>
+                            <input type="email" value="support@motorides.com" placeholder="Email">
+                        </div>
+                        <div class="form-group">
+                            <label>Taux de commission (%)</label>
+                            <input type="number" value="20" placeholder="Commission">
+                        </div>
+                        <div class="form-group">
+                            <label>Délai max d'acceptation (secondes)</label>
+                            <input type="number" value="30" placeholder="Délai">
+                        </div>
+                        <button class="btn-primary">Enregistrer</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/script.js"></script>
+    
+    <!-- Real-time clock -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const options = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            };
+            const liveTime = document.getElementById('live-time');
+            if (liveTime) {
+                liveTime.textContent = now.toLocaleTimeString('fr-FR');
+            }
+            document.getElementById('page-title').setAttribute('data-time', 
+                now.toLocaleString('fr-FR', options));
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
