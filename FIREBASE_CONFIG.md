@@ -318,13 +318,90 @@ CREATE INDEX IF NOT EXISTS driver_verifications_user_id_idx ON public.driver_ver
 CREATE INDEX IF NOT EXISTS driver_verifications_status_idx ON public.driver_verifications(status);
 ```
 
+### E. Table `rides` - Historique des Courses
+
+```sql
+CREATE TABLE IF NOT EXISTS public.rides (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  driver_id UUID REFERENCES public.drivers(id) ON DELETE SET NULL,
+  
+  -- Ride details
+  pickup_address TEXT NOT NULL,
+  pickup_lat DECIMAL(10, 8),
+  pickup_lng DECIMAL(11, 8),
+  dropoff_address TEXT NOT NULL,
+  dropoff_lat DECIMAL(10, 8),
+  dropoff_lng DECIMAL(11, 8),
+  
+  -- Trip info
+  distance INTEGER, -- in meters
+  duration INTEGER, -- in seconds
+  total_price DECIMAL(10, 2) NOT NULL,
+  payment_method TEXT DEFAULT 'cash' CHECK (payment_method IN ('cash', 'card', 'mobile_money')),
+  
+  -- Status
+  status TEXT DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'accepted', 'in_progress', 'completed', 'cancelled')),
+  cancellation_reason TEXT,
+  
+  -- Ratings
+  user_rating INTEGER CHECK (user_rating >= 1 AND user_rating <= 5),
+  driver_rating INTEGER CHECK (driver_rating >= 1 AND driver_rating <= 5),
+  user_comment TEXT,
+  driver_comment TEXT,
+  
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  accepted_at TIMESTAMPTZ,
+  started_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  cancelled_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.rides ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own rides" ON public.rides;
+CREATE POLICY "Users can view own rides"
+  ON public.rides FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Drivers can view assigned rides" ON public.rides;
+CREATE POLICY "Drivers can view assigned rides"
+  ON public.rides FOR SELECT USING (auth.uid() = driver_id);
+
+DROP POLICY IF EXISTS "Admins can view all rides" ON public.rides;
+CREATE POLICY "Admins can view all rides"
+  ON public.rides FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can create rides" ON public.rides;
+CREATE POLICY "Users can create rides"
+  ON public.rides FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users and drivers can update rides" ON public.rides;
+CREATE POLICY "Users and drivers can update rides"
+  ON public.rides FOR UPDATE
+  USING (auth.uid() = user_id OR auth.uid() = driver_id)
+  WITH CHECK (auth.uid() = user_id OR auth.uid() = driver_id);
+
+CREATE INDEX IF NOT EXISTS rides_user_id_idx ON public.rides(user_id);
+CREATE INDEX IF NOT EXISTS rides_driver_id_idx ON public.rides(driver_id);
+CREATE INDEX IF NOT EXISTS rides_status_idx ON public.rides(status);
+CREATE INDEX IF NOT EXISTS rides_created_at_idx ON public.rides(created_at DESC);
+```
+
 #### D. Instructions d'Exécution
 
 1. Allez dans **Supabase Dashboard** → **SQL Editor**
 2. Cliquez sur **"New Query"**
-3. Copiez chaque bloc SQL ci-dessus (un à la fois)
-4. Cliquez sur **"Run"** pour exécuter
-5. Vérifiez dans **Table Editor** que toutes les tables sont créées
+3. Copiez chaque bloc SQL ci-dessus (un à la fois dans cet ordre) :
+   - **Requête 1** : Table `users`
+   - **Requête 2** : Table `drivers`
+   - **Requête 3** : Table `admins` (inclut l'INSERT pour bassel2015@proton.me)
+   - **Requête 4** : Table `driver_verifications`
+   - **Requête 5** : Table `rides`
+4. Cliquez sur **"Run"** pour exécuter chaque requête
+5. Vérifiez dans **Table Editor** que toutes les 5 tables sont créées
 
 **Note :** Les tables et RLS (Row Level Security) sont conçues pour :
 - **Authentification** : Intégrée avec `auth.users` de Supabase
