@@ -609,6 +609,164 @@ function updateClientsTable(clients) {
     tbody.innerHTML = rows || '<tr><td colspan="7">Aucun client</td></tr>';
 }
 
+// ========== DRIVER VERIFICATION ==========
+
+// Fetch pending driver verifications
+async function fetchDriverVerifications(status = 'pending') {
+    if (!supabaseClient) return [];
+
+    try {
+        let query = supabaseClient
+            .from('driver_verifications')
+            .select(`
+                id,
+                driver_id,
+                user_id,
+                status,
+                submitted_at,
+                identity_photo_url,
+                driver_photo_url,
+                motorcycle_photo_url,
+                motorcycle_model,
+                motorcycle_color,
+                motorcycle_plate,
+                rejection_reason,
+                admin_notes,
+                drivers (
+                    id,
+                    full_name,
+                    email,
+                    phone,
+                    license_number,
+                    vehicle_type
+                )
+            `);
+
+        if (status !== 'all') {
+            query = query.eq('status', status);
+        }
+
+        const { data, error } = await query.order('submitted_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching verifications:', error);
+        return [];
+    }
+}
+
+// Get verification details
+async function getDriverVerificationDetails(verificationId) {
+    if (!supabaseClient) return null;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('driver_verifications')
+            .select(`
+                *,
+                drivers (
+                    *
+                )
+            `)
+            .eq('id', verificationId)
+            .single();
+
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error fetching verification details:', error);
+        return null;
+    }
+}
+
+// Approve driver verification
+async function approveDriverVerification(verificationId, adminNotes = '') {
+    if (!supabaseClient || !auth.currentUser) return false;
+
+    try {
+        const { error: updateError } = await supabaseClient
+            .from('driver_verifications')
+            .update({
+                status: 'approved',
+                verified_at: new Date().toISOString(),
+                verified_by_admin_id: auth.currentUser.uid,
+                admin_notes: adminNotes,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', verificationId);
+
+        if (updateError) throw updateError;
+
+        // Get driver ID and update driver is_verified status
+        const { data: verification, error: fetchError } = await supabaseClient
+            .from('driver_verifications')
+            .select('driver_id')
+            .eq('id', verificationId)
+            .single();
+
+        if (!fetchError && verification) {
+            await supabaseClient
+                .from('drivers')
+                .update({ is_verified: true })
+                .eq('id', verification.driver_id);
+        }
+
+        console.log('✓ Verification approved');
+        return true;
+    } catch (error) {
+        console.error('Error approving verification:', error);
+        return false;
+    }
+}
+
+// Reject driver verification
+async function rejectDriverVerification(verificationId, rejectionReason = '', adminNotes = '') {
+    if (!supabaseClient || !auth.currentUser) return false;
+
+    try {
+        const { error } = await supabaseClient
+            .from('driver_verifications')
+            .update({
+                status: 'rejected',
+                rejection_reason: rejectionReason,
+                admin_notes: adminNotes,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', verificationId);
+
+        if (error) throw error;
+
+        console.log('✓ Verification rejected');
+        return true;
+    } catch (error) {
+        console.error('Error rejecting verification:', error);
+        return false;
+    }
+}
+
+// Subscribe to verification updates
+function subscribeToVerifications(callback, status = 'pending') {
+    if (!supabaseClient) return;
+
+    const subscription = supabaseClient
+        .channel(`verifications_${status}`)
+        .on('postgres_changes',
+            {
+                event: '*',
+                schema: 'public',
+                table: 'driver_verifications'
+            },
+            (payload) => {
+                console.log('Verification update:', payload);
+                fetchDriverVerifications(status).then(callback);
+            }
+        )
+        .subscribe();
+
+    return subscription;
+}
+
 // Export functions for use in other scripts
 window.supabaseAPI = {
     initSupabase,
@@ -618,6 +776,15 @@ window.supabaseAPI = {
     subscribeToDailyRides,
     updateTodayRevenue,
     formatCurrency,
+    subscribeToRecentRides,
+    subscribeToDriversList,
+    subscribeToClientsList,
+    fetchDriverVerifications,
+    approveDriverVerification,
+    rejectDriverVerification,
+    getDriverVerificationDetails,
+    subscribeToVerifications
+};
     formatDistance,
     getStatusBadge
 };
