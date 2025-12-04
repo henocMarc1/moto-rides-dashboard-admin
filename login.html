@@ -390,30 +390,36 @@
         </p>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script>
-        // Configuration Supabase
-        const SUPABASE_URL = 'https://pmlzqzvylfjpnabsowvz.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbHpxenZ5bGZqcG5hYnNvd3Z6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMyNTg4NDIsImV4cCI6MjA0ODgzNDg0Mn0.BahEcFCmpnLaWVqkn1SkMwrRwwrNFuuDbYu1N8Gd5BE';
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_FIREBASE_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
         
-        let supabase = null;
+        // Initialize Firebase
+        let auth = null;
+        let db = null;
 
-        // Initialize Supabase when library loads
-        function initSupabase() {
-            if (typeof window.supabase === 'undefined') {
-                console.error('❌ Supabase library not loaded');
-                return false;
-            }
-            
+        // Initialize Firebase when library loads
+        function initFirebase() {
             try {
-                const { createClient } = window.supabase;
-                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                console.log('✓ Supabase initialized');
-                console.log('  - URL:', SUPABASE_URL);
-                console.log('  - Client created:', supabase !== null);
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                auth = firebase.auth();
+                db = firebase.firestore();
+                console.log('✓ Firebase initialized');
                 return true;
             } catch (error) {
-                console.error('❌ Failed to initialize Supabase:', error);
+                console.error('❌ Failed to initialize Firebase:', error);
                 return false;
             }
         }
@@ -501,65 +507,44 @@
             try {
                 console.log('🔐 Login attempt for:', email);
                 
-                if (!supabase) {
-                    console.error('❌ Supabase not initialized');
-                    throw new Error('Supabase non initialisé - Rechargez la page');
+                if (!auth) {
+                    console.error('❌ Firebase not initialized');
+                    throw new Error('Firebase non initialisé - Rechargez la page');
                 }
 
-                console.log('📤 Sending sign-in request to Supabase...');
+                console.log('📤 Sending sign-in request to Firebase...');
 
-                // Sign in with Supabase
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                // Sign in with Firebase
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                const user = userCredential.user;
 
-                if (error) {
-                    console.error('❌ Auth error:', error);
-                    console.error('   Code:', error.code);
-                    console.error('   Message:', error.message);
-                    throw new Error(error.message || 'Email ou mot de passe incorrect');
-                }
-
-                if (!data.user) {
+                if (!user) {
                     console.error('❌ No user data returned');
                     throw new Error('Échec de connexion');
                 }
 
-                console.log('✓ User authenticated:', data.user.id);
+                console.log('✓ User authenticated:', user.uid);
 
-                // Check if user is admin
+                // Check if user is admin in Firestore
                 console.log('📤 Checking admin status...');
-                const { data: adminData, error: adminError } = await supabase
-                    .from('admins')
-                    .select('*')
-                    .eq('id', data.user.id)
-                    .single();
-
-                if (adminError) {
-                    console.error('❌ Admin check error:', adminError);
-                    console.error('   Code:', adminError.code);
-                    console.error('   Message:', adminError.message);
-                    
-                    if (adminError.code !== 'PGRST116') {
-                        throw new Error('Erreur lors de la vérification des droits');
-                    }
-                }
-
-                if (!adminData) {
+                const adminDoc = await db.collection('admins').doc(user.uid).get();
+                
+                if (!adminDoc.exists) {
                     console.log('❌ User is not admin, signing out...');
-                    await supabase.auth.signOut();
+                    await auth.signOut();
                     throw new Error('Accès refusé. Vous n\'êtes pas administrateur.');
                 }
 
+                const adminData = adminDoc.data();
                 console.log('✓ Admin verified:', adminData.full_name);
+
                 showSuccess('✓ Connexion réussie ! Redirection...');
                 
                 localStorage.setItem('adminSession', JSON.stringify({
                     email: email,
                     name: adminData.full_name,
                     role: adminData.role,
-                    id: data.user.id
+                    id: user.uid
                 }));
 
                 setTimeout(() => window.location.href = 'index.html', 1500);
@@ -570,6 +555,7 @@
                 loginBtn.disabled = false;
                 loginBtn.innerHTML = 'Se connecter';
             }
+        });
         });
 
         // Register handler
@@ -597,46 +583,29 @@
             registerBtn.innerHTML = '<span class="loading-spinner"></span> Création...';
 
             try {
-                if (!supabase) {
-                    throw new Error('Supabase non initialisé');
+                if (!auth || !db) {
+                    throw new Error('Firebase non initialisé');
                 }
 
-                // Sign up with Supabase
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: { full_name: fullName }
-                    }
-                });
+                // Create user with Firebase
+                const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                const user = userCredential.user;
 
-                if (error) {
-                    console.error('Sign up error:', error);
-                    throw new Error(error.message || 'Erreur lors de l\'inscription');
-                }
-
-                if (!data.user) {
+                if (!user) {
                     throw new Error('Échec de création du compte');
                 }
 
-                console.log('✓ User created:', data.user.id);
+                console.log('✓ User created:', user.uid);
 
-                // Add to admins table
-                const { error: adminError } = await supabase
-                    .from('admins')
-                    .insert([{
-                        id: data.user.id,
-                        email: email,
-                        full_name: fullName,
-                        role: 'super_admin',
-                        can_verify_drivers: true
-                    }]);
-
-                if (adminError) {
-                    console.error('Admin insert error:', adminError);
-                    await supabase.auth.signOut();
-                    throw new Error('Erreur lors de la création du compte admin');
-                }
+                // Add to admins collection in Firestore
+                await db.collection('admins').doc(user.uid).set({
+                    email: email,
+                    full_name: fullName,
+                    role: 'super_admin',
+                    can_verify_drivers: true,
+                    created_at: firebase.firestore.FieldValue.serverTimestamp(),
+                    updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                });
 
                 console.log('✓ Admin created:', fullName);
                 showSuccess('✓ Compte créé avec succès !');
@@ -658,39 +627,42 @@
                 registerBtn.innerHTML = 'S\'inscrire';
             }
         });
+                return;
+            }
 
         // Check session on load
         window.addEventListener('load', async () => {
             console.log('=== PAGE LOADED ===');
-            console.log('📡 Initializing Supabase...');
+            console.log('📡 Initializing Firebase...');
             
-            // Wait for Supabase library to load
-            let attempts = 0;
-            while (!supabase && attempts < 10) {
-                const initialized = initSupabase();
-                if (initialized) {
-                    console.log('✓ Supabase initialized on attempt', attempts + 1);
-                    break;
-                }
-                console.log('⏳ Waiting for Supabase library... attempt', attempts + 1);
-                await new Promise(resolve => setTimeout(resolve, 300));
-                attempts++;
+            const initialized = initFirebase();
+            
+            if (!initialized) {
+                console.error('❌ Firebase initialization failed');
+                console.warn('⚠️ You may not have internet connection or Firebase is blocked');
+                return;
             }
+            
+            console.log('✓ Firebase ready');
+            
+            // Check if already logged in
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    console.log('✓ Session found, redirecting to dashboard');
+                    window.location.href = 'index.html';
+                } else {
+                    console.log('ℹ️ No session found');
+                }
+            });
+        });
 
-            if (!supabase) {
-                console.error('❌ Supabase initialization failed after 10 attempts');
-                console.warn('⚠️ You may not have internet connection or Supabase is blocked');
-            } else {
-                console.log('✓ Supabase ready');
-                
-                // Check if already logged in
-                try {
-                    console.log('📤 Checking existing session...');
-                    const { data: { session } } = await supabase.auth.getSession();
-                    if (session) {
-                        console.log('✓ Session found, redirecting to dashboard');
-                        window.location.href = 'index.html';
-                    } else {
+        // Also test connection on page ready
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📋 DOM Content Loaded - Firebase status:', auth ? '✓ Ready' : '❌ Not ready');
+        });
+    </script>
+</body>
+</html>
                         console.log('ℹ️ No session found');
                     }
                 } catch (error) {

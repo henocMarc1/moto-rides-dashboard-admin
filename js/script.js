@@ -401,10 +401,13 @@ if (logoutBtn) {
         if (confirm('Êtes-vous sûr de vouloir vous déconnecter?')) {
             showNotification('Déconnexion...', 'info');
             
-            // Sign out from Supabase if initialized
-            if (typeof supabase !== 'undefined') {
-                await supabase.auth.signOut();
+            // Sign out from Firebase if initialized
+            if (typeof firebase !== 'undefined' && firebase.auth()) {
+                await firebase.auth().signOut();
             }
+            
+            // Clear local storage
+            localStorage.removeItem('adminSession');
             
             setTimeout(() => {
                 window.location.href = 'login.html';

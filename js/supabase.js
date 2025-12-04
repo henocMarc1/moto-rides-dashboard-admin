@@ -1,97 +1,103 @@
-// ========== SUPABASE CONFIGURATION ==========
-// Replace with your actual Supabase credentials
-const SUPABASE_URL = 'https://pmlzqzvylfjpnabsowvz.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbHpxenZ5bGZqcG5hYnNvd3Z6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzMyNTg4NDIsImV4cCI6MjA0ODgzNDg0Mn0.BahEcFCmpnLaWVqkn1SkMwrRwwrNFuuDbYu1N8Gd5BE';
+// ========== FIREBASE CONFIGURATION ==========
+// Replace with your actual Firebase credentials
+const firebaseConfig = {
+    apiKey: "YOUR_FIREBASE_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+    appId: "YOUR_APP_ID"
+};
 
-// Initialize Supabase Client
-let supabaseClient = null;
-let supabase = null; // Alias for compatibility
+// Initialize Firebase
+let auth = null;
+let db = null;
 
-// Initialize Supabase connection
-async function initSupabase() {
+// Initialize Firebase connection
+async function initFirebase() {
     try {
-        // Check if @supabase/supabase-js is loaded
-        if (typeof window.supabase === 'undefined') {
-            console.warn('Supabase library not loaded. Using mock data for now.');
+        // Check if Firebase is loaded
+        if (typeof firebase === 'undefined') {
+            console.warn('Firebase library not loaded. Using mock data for now.');
             return false;
         }
 
-        const { createClient } = window.supabase;
+        // Initialize Firebase App
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         
-        supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        supabase = supabaseClient; // Create alias
-        console.log('✓ Supabase connected successfully');
+        auth = firebase.auth();
+        db = firebase.firestore();
+        
+        console.log('✓ Firebase connected successfully');
         
         // Check authentication
         await checkAdminAuth();
         
         return true;
     } catch (error) {
-        console.error('Failed to initialize Supabase:', error);
+        console.error('Failed to initialize Firebase:', error);
         return false;
     }
 }
 
+// Compatibility aliases
+const initSupabase = initFirebase;
+let supabaseClient = null;
+let supabase = null;
+
 // Check if user is authenticated admin
 async function checkAdminAuth() {
-    if (!supabaseClient) {
-        console.warn('Supabase not initialized, skipping auth check');
+    if (!auth) {
+        console.warn('Firebase not initialized, skipping auth check');
         return true; // Allow access for testing
     }
     
-    try {
-        const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-        
-        if (sessionError) {
-            console.error('Session error:', sessionError);
-            return true; // Allow access for testing
-        }
-        
-        if (!session) {
-            // Not logged in, redirect to login
-            if (!window.location.pathname.includes('login.html')) {
-                console.log('No session, redirecting to login');
-                window.location.href = 'login.html';
+    return new Promise((resolve) => {
+        auth.onAuthStateChanged(async (user) => {
+            try {
+                if (!user) {
+                    // Not logged in, redirect to login
+                    if (!window.location.pathname.includes('login.html')) {
+                        console.log('No user session, redirecting to login');
+                        window.location.href = 'login.html';
+                    }
+                    resolve(false);
+                    return;
+                }
+                
+                console.log('✓ User session found:', user.uid);
+                
+                // Check if user is admin in Firestore
+                const adminDoc = await db.collection('admins').doc(user.uid).get();
+                
+                if (!adminDoc.exists) {
+                    // Not an admin, sign out and redirect
+                    console.log('User is not admin, signing out');
+                    await auth.signOut();
+                    window.location.href = 'login.html';
+                    resolve(false);
+                    return;
+                }
+                
+                const admin = adminDoc.data();
+                console.log('✓ Admin verified:', admin.full_name);
+                
+                // Update UI with admin info
+                updateAdminUI(admin);
+                resolve(true);
+                
+            } catch (error) {
+                console.error('Auth check error:', error);
+                // Allow access for testing
+                if (user) {
+                    updateAdminUI({ full_name: user.email.split('@')[0] });
+                }
+                resolve(true);
             }
-            return false;
-        }
-        
-        console.log('✓ User session found:', session.user.id);
-        
-        // Check if user is admin
-        const { data: admin, error } = await supabaseClient
-            .from('admins')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-        
-        if (error) {
-            console.warn('Admin check error:', error);
-            // If table doesn't exist, allow access for testing
-            if (error.code === 'PGRST116' || error.message.includes('relation')) {
-                console.log('Admins table not found, allowing access for testing');
-                updateAdminUI({ full_name: session.user.email.split('@')[0] });
-                return true;
-            }
-        }
-        
-        if (!admin) {
-            // Not an admin, sign out and redirect
-            console.log('User is not admin, signing out');
-            await supabaseClient.auth.signOut();
-            window.location.href = 'login.html';
-            return false;
-        }
-        
-        console.log('✓ Admin verified:', admin.full_name);
-        // Update UI with admin info
-        updateAdminUI(admin);
-        return true;
-        
-    } catch (error) {
-        console.error('Auth check error:', error);
-        return true; // Allow access for testing
-    }
+        });
+    });
 }
 
 // Update UI with admin information
@@ -112,39 +118,32 @@ function updateAdminUI(admin) {
 
 // 1. Subscribe to active rides count (real-time)
 function subscribeToActiveRides(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('active_rides')
-        .on('postgres_changes', 
-            { 
-                event: '*', 
-                schema: 'public', 
-                table: 'rides',
-                filter: `status=in.(pending,accepted,inProgress,arrived)`
-            },
-            (payload) => {
-                console.log('Active rides update:', payload);
-                updateActiveRidesCount(callback);
-            }
-        )
-        .subscribe();
+    const unsubscribe = db.collection('rides')
+        .where('status', 'in', ['pending', 'accepted', 'inProgress', 'arrived'])
+        .onSnapshot((snapshot) => {
+            console.log('Active rides update:', snapshot.size);
+            callback && callback(snapshot.size);
+        }, (error) => {
+            console.error('Error subscribing to active rides:', error);
+        });
 
-    return subscription;
+    return unsubscribe;
 }
 
 // Get count of active rides
 async function updateActiveRidesCount(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
-        const { count } = await supabaseClient
-            .from('rides')
-            .select('id', { count: 'exact', head: true })
-            .in('status', ['pending', 'accepted', 'inProgress', 'arrived']);
+        const snapshot = await db.collection('rides')
+            .where('status', 'in', ['pending', 'accepted', 'inProgress', 'arrived'])
+            .get();
 
-        callback && callback(count || 0);
-        return count || 0;
+        const count = snapshot.size;
+        callback && callback(count);
+        return count;
     } catch (error) {
         console.error('Error getting active rides count:', error);
     }
@@ -152,39 +151,32 @@ async function updateActiveRidesCount(callback) {
 
 // 2. Subscribe to online drivers count (real-time)
 function subscribeToOnlineDrivers(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('online_drivers')
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'drivers',
-                filter: `status=eq.available`
-            },
-            (payload) => {
-                console.log('Online drivers update:', payload);
-                updateOnlineDriversCount(callback);
-            }
-        )
-        .subscribe();
+    const unsubscribe = db.collection('drivers')
+        .where('status', '==', 'available')
+        .onSnapshot((snapshot) => {
+            console.log('Online drivers update:', snapshot.size);
+            callback && callback(snapshot.size);
+        }, (error) => {
+            console.error('Error subscribing to online drivers:', error);
+        });
 
-    return subscription;
+    return unsubscribe;
 }
 
 // Get count of online drivers
 async function updateOnlineDriversCount(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
-        const { count } = await supabaseClient
-            .from('drivers')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'available');
+        const snapshot = await db.collection('drivers')
+            .where('status', '==', 'available')
+            .get();
 
-        callback && callback(count || 0);
-        return count || 0;
+        const count = snapshot.size;
+        callback && callback(count);
+        return count;
     } catch (error) {
         console.error('Error getting online drivers count:', error);
     }
@@ -192,42 +184,40 @@ async function updateOnlineDriversCount(callback) {
 
 // 3. Subscribe to real-time earnings (dashboard revenue)
 function subscribeToEarnings(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('earnings_real_time')
-        .on('postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'driver_earnings'
-            },
-            (payload) => {
-                console.log('New earning recorded:', payload);
-                updateTodayRevenue(callback);
-            }
-        )
-        .subscribe();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    return subscription;
+    const unsubscribe = db.collection('driver_earnings')
+        .where('created_at', '>=', firebase.firestore.Timestamp.fromDate(today))
+        .onSnapshot((snapshot) => {
+            console.log('Earnings update');
+            updateTodayRevenue(callback);
+        }, (error) => {
+            console.error('Error subscribing to earnings:', error);
+        });
+
+    return unsubscribe;
 }
 
 // Get today's revenue (platform commission)
 async function updateTodayRevenue(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const { data, error } = await supabaseClient
-            .from('driver_earnings')
-            .select('commission')
-            .gte('created_at', today.toISOString());
+        const snapshot = await db.collection('driver_earnings')
+            .where('created_at', '>=', firebase.firestore.Timestamp.fromDate(today))
+            .get();
 
-        if (error) throw error;
+        let totalCommission = 0;
+        snapshot.forEach(doc => {
+            totalCommission += doc.data().commission || 0;
+        });
 
-        const totalCommission = (data || []).reduce((sum, e) => sum + (e.commission || 0), 0);
         callback && callback(totalCommission);
         return totalCommission;
     } catch (error) {
@@ -237,43 +227,40 @@ async function updateTodayRevenue(callback) {
 
 // 4. Subscribe to total rides today
 function subscribeToDailyRides(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('daily_rides')
-        .on('postgres_changes',
-            {
-                event: 'INSERT',
-                schema: 'public',
-                table: 'rides',
-                filter: `status=eq.completed`
-            },
-            (payload) => {
-                console.log('Ride completed:', payload);
-                updateDailyRidesCount(callback);
-            }
-        )
-        .subscribe();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    return subscription;
+    const unsubscribe = db.collection('rides')
+        .where('status', '==', 'completed')
+        .where('created_at', '>=', firebase.firestore.Timestamp.fromDate(today))
+        .onSnapshot((snapshot) => {
+            console.log('Daily rides update:', snapshot.size);
+            callback && callback(snapshot.size);
+        }, (error) => {
+            console.error('Error subscribing to daily rides:', error);
+        });
+
+    return unsubscribe;
 }
 
 // Get today's completed rides
 async function updateDailyRidesCount(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const { count } = await supabaseClient
-            .from('rides')
-            .select('id', { count: 'exact', head: true })
-            .eq('status', 'completed')
-            .gte('created_at', today.toISOString());
+        const snapshot = await db.collection('rides')
+            .where('status', '==', 'completed')
+            .where('created_at', '>=', firebase.firestore.Timestamp.fromDate(today))
+            .get();
 
-        callback && callback(count || 0);
-        return count || 0;
+        const count = snapshot.size;
+        callback && callback(count);
+        return count;
     } catch (error) {
         console.error('Error getting daily rides count:', error);
     }
@@ -283,48 +270,56 @@ async function updateDailyRidesCount(callback) {
 
 // 5. Subscribe to recent rides (for table updates)
 function subscribeToRecentRides(callback, limit = 20) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('recent_rides')
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'rides'
-            },
-            (payload) => {
-                console.log('Rides table update:', payload);
-                fetchRecentRides(callback, limit);
-            }
-        )
-        .subscribe();
+    const unsubscribe = db.collection('rides')
+        .orderBy('created_at', 'desc')
+        .limit(limit)
+        .onSnapshot((snapshot) => {
+            console.log('Rides table update');
+            const rides = [];
+            snapshot.forEach(doc => {
+                rides.push({ id: doc.id, ...doc.data() });
+            });
+            callback && callback(rides);
+        }, (error) => {
+            console.error('Error subscribing to rides:', error);
+        });
 
-    return subscription;
+    return unsubscribe;
 }
 
 // Fetch recent rides with details
 async function fetchRecentRides(callback, limit = 20) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
-        const { data, error } = await supabaseClient
-            .from('rides')
-            .select(`
-                id,
-                status,
-                distance,
-                price,
-                created_at,
-                users!client_id (id, full_name),
-                drivers!driver_id (id, full_name)
-            `)
-            .order('created_at', { ascending: false })
-            .limit(limit);
+        const ridesSnapshot = await db.collection('rides')
+            .orderBy('created_at', 'desc')
+            .limit(limit)
+            .get();
 
-        if (error) throw error;
-        callback && callback(data || []);
-        return data || [];
+        const rides = [];
+        for (const doc of ridesSnapshot.docs) {
+            const ride = { id: doc.id, ...doc.data() };
+            
+            // Fetch client details
+            if (ride.client_id) {
+                const clientDoc = await db.collection('users').doc(ride.client_id).get();
+                ride.client = clientDoc.exists ? clientDoc.data() : null;
+            }
+            
+            // Fetch driver details
+            if (ride.driver_id) {
+                const driverDoc = await db.collection('drivers').doc(ride.driver_id).get();
+                ride.driver = driverDoc.exists ? driverDoc.data() : null;
+            }
+            
+            rides.push(ride);
+        }
+
+        callback && callback(rides);
+        return rides;
     } catch (error) {
         console.error('Error fetching recent rides:', error);
     }
@@ -332,46 +327,40 @@ async function fetchRecentRides(callback, limit = 20) {
 
 // 6. Subscribe to drivers list updates
 function subscribeToDriversList(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('drivers_list')
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'drivers'
-            },
-            (payload) => {
-                console.log('Drivers list update:', payload);
-                fetchDriversList(callback);
-            }
-        )
-        .subscribe();
+    const unsubscribe = db.collection('drivers')
+        .orderBy('total_rides', 'desc')
+        .onSnapshot((snapshot) => {
+            console.log('Drivers list update');
+            const drivers = [];
+            snapshot.forEach(doc => {
+                drivers.push({ id: doc.id, ...doc.data() });
+            });
+            callback && callback(drivers);
+        }, (error) => {
+            console.error('Error subscribing to drivers:', error);
+        });
 
-    return subscription;
+    return unsubscribe;
 }
 
 // Fetch drivers with details
 async function fetchDriversList(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
-        const { data, error } = await supabaseClient
-            .from('drivers')
-            .select(`
-                id,
-                full_name,
-                status,
-                rating,
-                total_rides,
-                user_id
-            `)
-            .order('total_rides', { ascending: false });
+        const snapshot = await db.collection('drivers')
+            .orderBy('total_rides', 'desc')
+            .get();
 
-        if (error) throw error;
-        callback && callback(data || []);
-        return data || [];
+        const drivers = [];
+        snapshot.forEach(doc => {
+            drivers.push({ id: doc.id, ...doc.data() });
+        });
+
+        callback && callback(drivers);
+        return drivers;
     } catch (error) {
         console.error('Error fetching drivers list:', error);
     }
@@ -379,40 +368,42 @@ async function fetchDriversList(callback) {
 
 // 7. Subscribe to clients list updates
 function subscribeToClientsList(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
-    const subscription = supabaseClient
-        .channel('clients_list')
-        .on('postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'users'
-            },
-            (payload) => {
-                console.log('Clients list update:', payload);
-                fetchClientsList(callback);
-            }
-        )
-        .subscribe();
+    const unsubscribe = db.collection('users')
+        .where('user_type', '==', 'client')
+        .orderBy('created_at', 'desc')
+        .onSnapshot((snapshot) => {
+            console.log('Clients list update');
+            const clients = [];
+            snapshot.forEach(doc => {
+                clients.push({ id: doc.id, ...doc.data() });
+            });
+            callback && callback(clients);
+        }, (error) => {
+            console.error('Error subscribing to clients:', error);
+        });
 
-    return subscription;
+    return unsubscribe;
 }
 
 // Fetch clients with details
 async function fetchClientsList(callback) {
-    if (!supabaseClient) return;
+    if (!db) return;
 
     try {
-        const { data, error } = await supabaseClient
-            .from('users')
-            .select('id, full_name, email, phone, total_spent, created_at')
-            .eq('user_type', 'client')
-            .order('created_at', { ascending: false });
+        const snapshot = await db.collection('users')
+            .where('user_type', '==', 'client')
+            .orderBy('created_at', 'desc')
+            .get();
 
-        if (error) throw error;
-        callback && callback(data || []);
-        return data || [];
+        const clients = [];
+        snapshot.forEach(doc => {
+            clients.push({ id: doc.id, ...doc.data() });
+        });
+
+        callback && callback(clients);
+        return clients;
     } catch (error) {
         console.error('Error fetching clients list:', error);
     }
@@ -454,7 +445,7 @@ function getStatusBadge(status) {
 
 // Auto-initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
-    const isConnected = await initSupabase();
+    const isConnected = await initFirebase();
     
     if (isConnected) {
         console.log('Starting real-time subscriptions...');
@@ -462,7 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Setup all subscriptions with update callbacks
         setupDashboardSubscriptions();
     } else {
-        console.warn('Supabase not connected. Using simulated data.');
+        console.warn('Firebase not connected. Using simulated data.');
         setupMockData();
     }
 });
@@ -536,8 +527,8 @@ function updateRecentRidesTable(rides) {
     const rows = rides.slice(0, 10).map(ride => `
         <tr>
             <td>${ride.id.substring(0, 8)}</td>
-            <td>${ride.users?.full_name || 'N/A'}</td>
-            <td>${ride.drivers?.full_name || 'N/A'}</td>
+            <td>${ride.client?.full_name || 'N/A'}</td>
+            <td>${ride.driver?.full_name || 'N/A'}</td>
             <td>${formatDistance(ride.distance || 0)}</td>
             <td>${formatCurrency(ride.price || 0)}</td>
             ${getStatusBadge(ride.status)}
