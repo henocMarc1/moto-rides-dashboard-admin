@@ -122,69 +122,215 @@ const firebaseConfig = {
 };
 ```
 
-### 7. Structure de la Base de Données Firestore
+### 7. Configuration Supabase pour la Base de Données
 
-Créez les collections suivantes dans Firestore :
+**Important :** Firebase est utilisé uniquement pour l'authentification. Les données sont stockées dans Supabase.
 
-#### Collection `admins`
-```
-admins/{userId}
-  - email: string
-  - full_name: string
-  - role: string ('admin' | 'super_admin')
-  - can_verify_drivers: boolean
-  - created_at: timestamp
-  - updated_at: timestamp
+#### A. Créer le projet Supabase
+
+1. Allez sur https://supabase.com
+2. Cliquez sur **"New Project"**
+3. Renseignez :
+   - **Name** : `moto-rides`
+   - **Database Password** : Choisissez un mot de passe fort
+   - **Region** : Europe (Frankfurt)
+4. Cliquez sur **"Create new project"**
+5. Attendez la création (2-3 minutes)
+
+#### B. Récupérer les credentials Supabase
+
+1. Dans le menu latéral, cliquez sur **⚙️ Settings** → **API**
+2. Copiez :
+   - **Project URL** : `https://xxxxx.supabase.co`
+   - **anon public** key
+
+#### C. Structure de la Base de Données Supabase
+
+Allez dans **SQL Editor** et exécutez les scripts suivants :
+
+##### 1. Table `users`
+```sql
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  phone TEXT DEFAULT '',
+  profile_image TEXT DEFAULT '',
+  rating DECIMAL(3,2) DEFAULT 5.0,
+  is_driver BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  address TEXT DEFAULT '',
+  total_rides INTEGER DEFAULT 0
+);
+
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can read own profile" ON users;
+CREATE POLICY "Users can read own profile"
+  ON users FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can insert own profile" ON users;
+CREATE POLICY "Users can insert own profile"
+  ON users FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+CREATE POLICY "Users can update own profile"
+  ON users FOR UPDATE USING (auth.uid() = id);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_is_driver ON users(is_driver);
 ```
 
-#### Collection `drivers`
-```
-drivers/{driverId}
-  - full_name: string
-  - email: string
-  - phone: string
-  - status: string ('available' | 'onRide' | 'offline')
-  - rating: number
-  - total_rides: number
-  - total_earnings: number
-  - created_at: timestamp
+##### 2. Table `drivers`
+```sql
+CREATE TABLE IF NOT EXISTS public.drivers (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT NOT NULL,
+  vehicle_type TEXT DEFAULT 'motorcycle',
+  vehicle_model TEXT,
+  vehicle_color TEXT,
+  vehicle_plate TEXT,
+  license_number TEXT,
+  is_available BOOLEAN DEFAULT FALSE,
+  is_verified BOOLEAN DEFAULT FALSE,
+  rating DECIMAL(3,2) DEFAULT 5.0,
+  total_rides INTEGER DEFAULT 0,
+  current_lat DOUBLE PRECISION,
+  current_lng DOUBLE PRECISION,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.drivers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Drivers can read own profile" ON public.drivers;
+CREATE POLICY "Drivers can read own profile"
+  ON public.drivers FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Drivers can insert own profile" ON public.drivers;
+CREATE POLICY "Drivers can insert own profile"
+  ON public.drivers FOR INSERT WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Drivers can update own profile" ON public.drivers;
+CREATE POLICY "Drivers can update own profile"
+  ON public.drivers FOR UPDATE USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Everyone can view available drivers" ON public.drivers;
+CREATE POLICY "Everyone can view available drivers"
+  ON public.drivers FOR SELECT USING (is_available = true);
+
+CREATE INDEX IF NOT EXISTS idx_drivers_is_available ON public.drivers(is_available);
+CREATE INDEX IF NOT EXISTS idx_drivers_is_verified ON public.drivers(is_verified);
+CREATE INDEX IF NOT EXISTS idx_drivers_location ON public.drivers(current_lat, current_lng);
 ```
 
-#### Collection `rides`
-```
-rides/{rideId}
-  - client_id: string (référence à users)
-  - driver_id: string (référence à drivers)
-  - status: string ('pending' | 'accepted' | 'inProgress' | 'completed' | 'cancelled')
-  - distance: number (km)
-  - price: number (CFA)
-  - pickup_location: map
-  - dropoff_location: map
-  - created_at: timestamp
-  - completed_at: timestamp
+##### 3. Table `admins`
+```sql
+CREATE TABLE IF NOT EXISTS public.admins (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL UNIQUE,
+  full_name TEXT,
+  role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+  can_verify_drivers BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+ALTER TABLE public.admins ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Admins can view other admins" ON public.admins;
+CREATE POLICY "Admins can view other admins"
+  ON public.admins FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
+
+-- Créer le premier administrateur
+INSERT INTO public.admins (id, email, full_name, role, can_verify_drivers, created_at, updated_at)
+VALUES (
+  'c0b5f07f-63dc-4fff-ad5b-4024943589b0',
+  'bassel2015@proton.me',
+  'Administrateur Principal',
+  'super_admin',
+  true,
+  NOW(),
+  NOW()
+)
+ON CONFLICT (id) DO UPDATE SET
+  email = 'bassel2015@proton.me',
+  updated_at = NOW();
 ```
 
-#### Collection `users`
-```
-users/{userId}
-  - full_name: string
-  - email: string
-  - phone: string
-  - user_type: string ('client')
-  - total_spent: number
-  - rides_count: number
-  - created_at: timestamp
+##### 4. Table `driver_verifications`
+```sql
+CREATE TABLE IF NOT EXISTS public.driver_verifications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  driver_id UUID NOT NULL REFERENCES public.drivers(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  
+  -- Photos URLs (Cloudinary)
+  identity_photo_url TEXT,
+  driver_photo_url TEXT,
+  motorcycle_photo_url TEXT,
+  
+  -- Motorcycle info
+  motorcycle_model TEXT,
+  motorcycle_color TEXT,
+  motorcycle_plate TEXT,
+  
+  -- Status
+  status TEXT DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'in_review', 'approved', 'rejected')),
+  rejection_reason TEXT,
+  admin_notes TEXT,
+  verified_by_admin_id UUID,
+  
+  -- Timestamps
+  submitted_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  verified_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE public.driver_verifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own verification" ON public.driver_verifications;
+CREATE POLICY "Users can view own verification"
+  ON public.driver_verifications FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can view all verifications" ON public.driver_verifications;
+CREATE POLICY "Admin can view all verifications"
+  ON public.driver_verifications FOR SELECT
+  USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
+
+DROP POLICY IF EXISTS "Users can insert own verification" ON public.driver_verifications;
+CREATE POLICY "Users can insert own verification"
+  ON public.driver_verifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can update verifications" ON public.driver_verifications;
+CREATE POLICY "Admin can update verifications"
+  ON public.driver_verifications FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.admins WHERE id = auth.uid()));
+
+CREATE INDEX IF NOT EXISTS driver_verifications_driver_id_idx ON public.driver_verifications(driver_id);
+CREATE INDEX IF NOT EXISTS driver_verifications_user_id_idx ON public.driver_verifications(user_id);
+CREATE INDEX IF NOT EXISTS driver_verifications_status_idx ON public.driver_verifications(status);
 ```
 
-#### Collection `driver_earnings`
-```
-driver_earnings/{earningId}
-  - driver_id: string
-  - ride_id: string
-  - amount: number (montant total)
-  - commission: number (commission plateforme)
-  - created_at: timestamp
-```
+#### D. Instructions d'Exécution
+
+1. Allez dans **Supabase Dashboard** → **SQL Editor**
+2. Cliquez sur **"New Query"**
+3. Copiez chaque bloc SQL ci-dessus (un à la fois)
+4. Cliquez sur **"Run"** pour exécuter
+5. Vérifiez dans **Table Editor** que toutes les tables sont créées
+
+**Note :** Les tables et RLS (Row Level Security) sont conçues pour :
+- **Authentification** : Intégrée avec `auth.users` de Supabase
+- **Sécurité** : Chaque utilisateur ne peut voir que ses propres données
+- **Admins** : Peuvent voir les verifications des drivers
+- **Drivers** : Référencés par leur UID Firebase/Supabase
 
 ### 8. Créer le Premier Administrateur
 
